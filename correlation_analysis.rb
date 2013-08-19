@@ -1,7 +1,6 @@
 require 'rubygems'
 require 'mixpanel_client'
 require 'csv'
-require 'date'
 
 # Settings for Mixpanel
 config = {api_key: 'ca805cc64eb5883cc5d8d4e79590312b', api_secret: 'e7413cb61a3df46eef549717e2b8a175'}
@@ -53,11 +52,12 @@ sites.each do |site|
         from_date:      site['Registration Date'].to_s,
         
         # These are for dev purposes, to keep the data set small.
-
+        to_date:        site['Registration Date'].to_s,
+        event:          ['Registered'],
         # to_date:        to_date.to_s,
         # event:          events
         
-        where:          "#{site['distinct_id']} == properties['distinct_id']"
+        where:          "'#{site['distinct_id']}' == properties['distinct_id']"
     })
     puts "Found #{site_events.size} events."
 
