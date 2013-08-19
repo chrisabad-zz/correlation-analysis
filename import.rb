@@ -57,8 +57,8 @@ progress_bar = ProgressBar.create(
     :total => days.size
 )
 
-begin
-    days.each do |day|
+days.each do |day|
+    begin
         event_data = mixpanel_client.request('export', {
             from_date:      day,
             to_date:        day,
@@ -66,8 +66,10 @@ begin
         })
         events_collection.insert(event_data)
         progress_bar.increment
+    rescue
+        progress_bar.log('Another request is already in progress for this project. Will try again in 1 minute.')
+        sleep 60
+        retry
     end
-rescue
-    progress_bar.finish
-    progress_bar.log('Another request is already in progress for this project. Please try again later.')
 end
+
