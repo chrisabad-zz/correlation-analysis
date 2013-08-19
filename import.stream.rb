@@ -1,5 +1,7 @@
-# This script will import all event data from Mixpanel, for a given
-# date range based on the cohort imported.
+# This is a more efficient version of the import script. it
+# uses the undocumented Mixpanel stream API to only import events
+# for sites identified in the cohort, between the given site's 
+# registration and conversion dates.
 
 require 'rubygems'
 require 'mixpanel_client'
@@ -51,35 +53,24 @@ raw_cohort.values_at('distinct_id', 'Registration Date', 'Conversion Date').each
 end
 puts "#{cohort.size} sites found in the cohort."
 
-# Find earliest and latest registration date.
-start_date = cohort.sort { |a,b| a['Registration Date'] <=> b['Registration Date'] }.first['Registration Date']
-# Account for last trials by going 14 day beyond registration date.
-end_date = cohort.sort { |a,b| b['Registration Date'] <=> a['Registration Date'] }.first['Registration Date'] + 14
-puts "Preparing to import event data from #{start_date} to #{end_date}."
-
-# Import event data for each day
-days = (start_date..end_date).map { |date| date.to_s }
-events_collection = mongo_db['events']
+events_collection = mongo_db['stream_events']
 events_collection.remove
 progress_bar = ProgressBar.create(
-    :format => '%a |%B| %c of %C days imported - %E',
+    :format => '%a |%B| %c of %C sites imported - %E',
     :title => "Progress",
-    :total => days.size
+    :total => cohort.size
 )
 
-days.each do |day|
-    begin
-        event_data = mixpanel_client.request('export', {
-            from_date:      day,
-            to_date:        day,
-            event:          events
-        })
-        events_collection.insert(event_data)
-        progress_bar.increment
-    rescue
-        progress_bar.log('Another request is still in progress for this project. Will try again in 1 minute.')
-        sleep 60
-        retry
-    end
+cohort.each do |site|
+    from_date = site['Registration Date'].to_s
+    to_date = site['Conversion Date'] ? site['Conversion Date'].to_s : (site['Registration Date'] + 14).to_s
+
+    event_data = mixpanel_client.request('stream/query', {
+        from_date:      from_date,
+        to_date:        to_date,
+        distinct_ids:   ["#{site['distinct_id']}"]
+    })
+    events_collection.insert(event_data)
+    progress_bar.increment
 end
 
