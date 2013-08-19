@@ -52,7 +52,7 @@ days = (start_date..end_date).map { |date| date.to_s }
 events_collection = mongo_db['events']
 events_collection.remove
 progress_bar = ProgressBar.create(
-    :format => '%a |%B| %c of %C - %E',
+    :format => '%a |%B| %c of %C days imported - %E',
     :title => "Progress",
     :total => days.size
 )
@@ -67,7 +67,7 @@ days.each do |day|
         events_collection.insert(event_data)
         progress_bar.increment
     rescue
-        progress_bar.log('Another request is already in progress for this project. Will try again in 1 minute.')
+        progress_bar.log('Another request is still in progress for this project. Will try again in 1 minute.')
         sleep 60
         retry
     end
