@@ -70,7 +70,11 @@ cohort.each do |site|
         to_date:        to_date,
         distinct_ids:   ["#{site['distinct_id']}"]
     })
-    events_collection.insert(event_data)
+
+    # Before inserting, need to properly format the events.
+    if event_data['results']['events'].size > 0
+        events_collection.insert(event_data['results']['events'])
+    end
     progress_bar.increment
 end
 
