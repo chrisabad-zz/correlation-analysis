@@ -53,7 +53,7 @@ raw_cohort.values_at('distinct_id', 'Registration Date', 'Conversion Date').each
 end
 puts "#{cohort.size} sites found in the cohort."
 
-events_collection = mongo_db['stream_events']
+events_collection = mongo_db['events']
 events_collection.remove
 progress_bar = ProgressBar.create(
     :format => '%a |%B| %c of %C sites imported - %E',
@@ -73,6 +73,11 @@ cohort.each do |site|
 
     # Before inserting, need to properly format the events.
     if event_data['results']['events'].size > 0
+        # Properly format the time property
+        event_data['results']['events'].each do |event|
+            event['properties']['time'] = Time.at(event['properties']['time']).to_datetime
+        end
+
         events_collection.insert(event_data['results']['events'])
     end
     progress_bar.increment

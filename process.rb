@@ -50,9 +50,10 @@ raw_cohort.values_at('distinct_id', 'Registration Date', 'Conversion Date').each
 end
 puts "#{cohort.size} sites found in the cohort."
 
-events_collection = mongo_db['stream_events']
+events_collection = mongo_db['events']
 sites_collection = mongo_db['sites']
 sites_collection.remove
+
 progress_bar = ProgressBar.create(
     :format => '%a |%B| %c of %C sites imported - %E',
     :title => "Progress",
@@ -72,6 +73,9 @@ cohort.each do |site|
 		# Append results to document.
 		site['events'][event] = happened ? 1 : 0
 	end
+
+	# Indicate whether or not the site registered.
+	site['events']['Converted'] = site['properties']['Conversion Date'] ? 1 : 0
 
 	# Insert document to MongoDB.
 	sites_collection.insert(site)
