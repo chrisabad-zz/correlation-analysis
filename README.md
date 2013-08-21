@@ -19,6 +19,6 @@ Here are the scripts provided. They do not need to be run all at once, but they 
 * **export.rb** – This script will export the output from `process.rb` to `raw_data.csv`, as well as the output from `analyze.rb` to `correlation_analysis.csv`.
 
 TO DO
-=====
+-----
 
 * Determine average time it takes an account to do each event for the first time.
