@@ -15,5 +15,5 @@ Here are the scripts provided. They do not need to be run all at once, but they 
 
 * **import.rb** – This script will take all the sites identified in the cohort, and import all events from Mixpanel during their trial.
 * **process.rb** – This script will take each site identified in the cohort, and indicate whether they did each available event at least once sometime during their trial.
-* **correlation.rb** – This script will run correlation, significance, and regression analysis on the data from `process.rb`.
-* **export.rb** – This script will export the output from `process.rb` to `raw_data.csv`, as well as the output from `correlation.rb` to `correlation_analysis.csv`.
+* **analyze.rb** – This script will run correlation, significance, and regression analysis on the data from `process.rb`.
+* **export.rb** – This script will export the output from `process.rb` to `raw_data.csv`, as well as the output from `analyze.rb` to `correlation_analysis.csv`.
