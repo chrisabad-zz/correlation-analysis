@@ -36,6 +36,9 @@ events.each do |event|
 	processed_data[event]['correlation'] = pearson.r
 	processed_data[event]['probability'] = pearson.probability
 	processed_data[event]['regression'] = Statsample::Regression::Simple.new_from_vectors(event_data['Converted'], event_data[event]).b
+	
+	# TODO: Calculate average time between registration and first occurance of the event.
+
 	progress_bar.increment
 end
 
