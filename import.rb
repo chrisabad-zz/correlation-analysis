@@ -20,7 +20,7 @@ end
 
 # Settings for Mixpanel
 config = {api_key: 'ca805cc64eb5883cc5d8d4e79590312b', api_secret: 'e7413cb61a3df46eef549717e2b8a175'}
-mixpanel_client = Mixpanel::Client.new(config)
+$mixpanel_client = Mixpanel::Client.new(config)
 
 # Settings for CSV
 csv_filename = 'cohort.csv'
@@ -29,12 +29,36 @@ csv_options = {
     converters:     [ :numeric ] 
 }
 
+def import_site(site)
+    from_date = site['Registration Date'].to_s
+    to_date = site['Conversion Date'] ? site['Conversion Date'].to_s : (site['Registration Date'] + 14).to_s
+
+    event_data = $mixpanel_client.request('stream/query', {
+        from_date:      from_date,
+        to_date:        to_date,
+        distinct_ids:   ["#{site['distinct_id']}"]
+    })
+
+    # Before inserting, need to properly format the events.
+    if event_data['results']['events'].size > 0
+        # Properly format the time property
+        event_data['results']['events'].each do |event|
+            event['properties']['time'] = Time.at(event['properties']['time']).utc
+        end
+
+        $events_collection.insert(event_data['results']['events'])
+    end
+
+    $progress_bar.increment 
+end
+
+
 # Connect to MongoDB
 mongo_client = MongoClient.new
 mongo_db = mongo_client.db("correlation_analysis")
 
 # Get a list of all the events
-events = mixpanel_client.request('events/names', { type: 'general' })
+events = $mixpanel_client.request('events/names', { type: 'general' })
 puts "Preparing to import data for #{events.size} event types."
 
 # Get a list of all the sites from the CSV
@@ -53,33 +77,40 @@ raw_cohort.values_at('distinct_id', 'Registration Date', 'Conversion Date').each
 end
 puts "#{cohort.size} sites found in the cohort."
 
-events_collection = mongo_db['events']
-events_collection.remove
-progress_bar = ProgressBar.create(
+$events_collection = mongo_db['events']
+$events_collection.remove
+$progress_bar = ProgressBar.create(
     :format => '%a |%B| %c of %C sites imported - %E',
     :title => "Progress",
     :total => cohort.size
 )
 
+# Store threads here.
+threads = []
+
 cohort.each do |site|
-    from_date = site['Registration Date'].to_s
-    to_date = site['Conversion Date'] ? site['Conversion Date'].to_s : (site['Registration Date'] + 14).to_s
-
-    event_data = mixpanel_client.request('stream/query', {
-        from_date:      from_date,
-        to_date:        to_date,
-        distinct_ids:   ["#{site['distinct_id']}"]
-    })
-
-    # Before inserting, need to properly format the events.
-    if event_data['results']['events'].size > 0
-        # Properly format the time property
-        event_data['results']['events'].each do |event|
-            event['properties']['time'] = Time.at(event['properties']['time']).to_datetime
+    # Only open 20 threads at a time
+    if(Thread.list.count % 20 != 0) 
+        import_thread = Thread.new do
+            import_site(site)
         end
-
-        events_collection.insert(event_data['results']['events'])
+        threads << import_thread
+    else
+    # Wait for open threads to finish executing 
+    # before starting new one
+    threads.each do |thread|
+      thread.join
     end
-    progress_bar.increment
+    # Start importing again
+    import_thread = Thread.new do
+      import_site(site)
+    end
+    threads << import_thread
+  end
+end
+
+# Wait for threads to finish executing before exiting the program
+threads.each do |thread|
+  thread.join
 end
 
