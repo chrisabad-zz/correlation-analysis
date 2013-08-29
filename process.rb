@@ -64,18 +64,31 @@ cohort.each do |site|
 	site['events'] = {}
 
 	# Grab all avilable events for the site between the registration and conversion date.
-	site_events = events_collection.find({'properties.distinct_id' => site['distinct_id']}, :fields => ['event'])
-	site_events = site_events.map { |site_event| site_event['event'] }.uniq
+	site_events = events_collection.find({'properties.distinct_id' => site['distinct_id']}, :fields => ['event', 'properties.time']).to_a
+	site_event_names = site_events.map { |site_event| site_event['event'] }.uniq
 	
 	# Iterate through each event, to see if there's at least one event
-	events.each do |event|
-		happened = site_events.include?(event)
+	events.each do |event_name|
+		happened = site_event_names.include?(event_name)
 		# Append results to document.
-		site['events'][event] = happened ? 1 : 0
+		site['events'][event_name] = {}
+		site['events'][event_name]['happened'] = happened ? 1 : 0
+
+		# If the event happened, determine when.
+		if happened
+			timestamp = site_events.select { |site_event| site_event['event'] == event_name }.first['properties']['time']
+
+			# Calculate how long it took for the event to happen.
+			site['events'][event_name]['time'] = (timestamp - site['properties']['Registration Date'])
+		else
+			site['events'][event_name]['time'] = nil
+		end
 	end
 
 	# Indicate whether or not the site registered.
-	site['events']['Converted'] = site['properties']['Conversion Date'] ? 1 : 0
+	site['events']['Converted'] = {}
+	site['events']['Converted']['happened'] = site['properties']['Conversion Date'] ? 1 : 0
+	site['events']['Converted']['time'] = site['properties']['Conversion Date'] ? (site['properties']['Conversion Date'] - site['properties']['Registration Date']) : nil
 
 	# Insert document to MongoDB.
 	sites_collection.insert(site)

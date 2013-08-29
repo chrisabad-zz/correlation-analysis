@@ -47,9 +47,9 @@ analysis_data_progress_bar = ProgressBar.create(
 # Export analysis data
 CSV.open("correlation_analysis.csv", "wb") do |row|
   # Headers
-  row << ["Event Name", "Correlation", "Probability", "Regression"]
+  row << ["Event Name", "Correlation", "Strength", "Confidence", "Increase", "Occurs"]
   events.each do |event|
-  	row << [ event['name'], event['properties']['correlation'], event['properties']['probability'], event['properties']['regression'] ]
+  	row << [ event['name'], event['properties']['correlation'], event['properties']['strength'], event['properties']['confidence'], event['properties']['increase'], event['properties']['occurs'] ]
   	analysis_data_progress_bar.increment
   end
 end
