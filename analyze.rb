@@ -53,15 +53,15 @@ events.each do |event|
 	
 	processed_data[event]['strength'] = case
 	when correlation >= 7000
-		'very strong'
+		'Very Strong'
 	when correlation.between?(4000,7000)
-		'strong'
+		'Strong'
 	when correlation.between?(3000,4000)
-		'moderate'
+		'Moderate'
 	when correlation.between?(2000,3000)
-		'weak'
+		'Weak'
 	else	
-		'negligible'
+		'Negligible'
 	end
 
 	# TODO: Calculate average time between registration and first occurance of the event.
